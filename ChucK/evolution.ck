@@ -1,5 +1,3 @@
-// This is a comment
-
 // Genetic
 
 // Load a soundbuf
