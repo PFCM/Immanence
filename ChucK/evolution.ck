@@ -42,27 +42,6 @@ for (0 => int i; i < population.cap(); i++)
     population[i].set(lisa, 0.1::ms, i);
 }
 
-// control
-//Kontrol k;
-//k.init(1);
-/*spork ~ midiConverter();
-
-fun void midiConverter() 
-{
-    while (true)
-    {
-        k.knobs[0]/127.0 * 4 => float temp;
-        k.rec => targetBi;
-        (k.knobs[1]/127.0 * 4)::second + 1::samp => targetSize;
-        if (targetRate != temp)
-        {
-            temp => targetRate;
-            <<<"target rate: ", temp>>>;
-        }
-        10::ms => now;
-    }
-}*/
-
 // fitness function, assess differences between parameters and some target
 // try and express as a float somehow
 fun float fitness(Voice v)
@@ -136,7 +115,7 @@ fun void nextGeneration(Voice pop[], float fit[], LiSa l)
     mutate(pop, mutRate);
 }
 
-// combines random aspects of two voices
+// combines random aspects of two voices, should probably combine best ones but who knows
 fun Voice breed(Voice a, Voice b, Voice child)
 {
     if (maybe) a.rate => child.rate;
