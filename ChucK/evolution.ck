@@ -115,7 +115,7 @@ fun void nextGeneration(Voice pop[], float fit[], LiSa l)
     mutate(pop, mutRate);
 }
 
-// combines random aspects of two voices
+// combines random aspects of two voices, should probably combine best ones but who knows
 fun Voice breed(Voice a, Voice b, Voice child)
 {
     if (maybe) a.rate => child.rate;
