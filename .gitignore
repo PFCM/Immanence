@@ -3,3 +3,7 @@
 .DS_Store
 .DS_Store?
 commit_message_*
+*.aux
+*.log
+*.pdf
+*.gz
