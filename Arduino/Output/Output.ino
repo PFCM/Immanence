@@ -1,11 +1,12 @@
-#include <math.h>
-
-const int motor_1 = 11;
+const int encMotor = 11;
+const int lMotor = 10;
+const int rMotor = 9;
 
 volatile byte newB;
 volatile byte oldA;
 volatile int encoderPos;
 
+// states for the encoder motor (head)
 int emState = 0;
 const int EM_SEARCH = 0;
 const int EM_STOP = 1;
@@ -13,9 +14,23 @@ const int EM_RAMP = 2;
 
 const int EM_STOP_POINT = 4330;
 
+// states for arm motors
+// not the motors are different, so applying the same
+// settings will have different outcomes
+int lState = 0;
+int rState = 0;
+const int M_WANDER = 0;
+const int M_TWITCH = 2;
+const int M_STOP = 1;
+const int M_RAMP_UP = 3;
+const int M_RAMP_DOWN = 4;
+
 
 void setup() {
-  pinMode(motor_1, OUTPUT);
+  // set up motor pins
+  pinMode(encMotor, OUTPUT);
+  pinMode(lMotor, OUTPUT);
+  pinMode(rMotor, OUTPUT);
 
   // attach interrupts
   attachInterrupt(0, doEncoderA, CHANGE);
@@ -28,24 +43,30 @@ void loop() {
   static long start = millis();
 
   runEncMotor();
+  runArmMotors();
 
   //if ((millis()%1000) == 0)
   //Serial.println(encoderPos);
 
+// for the sake of testing
   if (millis() - start == 5000) {
     emState = EM_STOP;
+    lState = M_RAMP_UP;
     Serial.println("STOPPING");
   }
   else if (millis() - start == 10000) {
     emState = EM_RAMP;
+    lState = M_RAMP_DOWN;
     Serial.println("RAMPING");
   }
   else if (millis() - start == 13000) {
     emState = EM_SEARCH;
+    lState = M_WANDER;
     Serial.println("SEARCHING");
   }
   else if (millis() - start == 18000) {
     emState = EM_STOP;
+    lState = M_TWITCH;
     Serial.println("STOPPING");
   }
 }  
@@ -98,13 +119,13 @@ void emSearch()
         slowStart = millis();
       } 
       else {
-        analogWrite(motor_1, power);
+        analogWrite(encMotor, power);
       }
     } 
   }
   if (searchState == 1) {
     power = 0;
-    analogWrite(motor_1, power);
+    analogWrite(encMotor, power);
     if (millis() - slowStart >= 1000) {
       searchState = 0;
       cap = random(125, 255);
@@ -123,20 +144,20 @@ void emStop()
   if (abs(encoderPos - EM_STOP_POINT) > 3 && !madeit) {
     float dist =  EM_STOP_POINT - encoderPos;
     if (dist > 0 && dist > 4331/2)
-      analogWrite(motor_1, 40);
+      analogWrite(encMotor, 40);
     else if (dist > 0 && dist > 400)
-      analogWrite(motor_1, 25); 
+      analogWrite(encMotor, 25); 
     else if (dist > 0 && dist < 400 && dist > 100)
-      analogWrite(motor_1, 17);
+      analogWrite(encMotor, 17);
     else if (dist > 0 && dist < 3) {
       madeit = 1;
     }
     else 
-      analogWrite(motor_1, 15);
+      analogWrite(encMotor, 15);
   } 
   else {
-    analogWrite(motor_1, 0); 
-   // if (encoderPos != EM_STOP_POINT) madeit = 0;
+    analogWrite(encMotor, 0); 
+    // if (encoderPos != EM_STOP_POINT) madeit = 0;
   }
 }
 
@@ -149,10 +170,10 @@ void emRamp()
   if (millis() % rate == 1 && millis() != time) {
     time = millis();
     if (power < target) {
-      analogWrite(motor_1, power++);
+      analogWrite(encMotor, power++);
     } 
     else {
-      analogWrite(motor_1, target); 
+      analogWrite(encMotor, target); 
     }
   }
 }
@@ -163,6 +184,126 @@ int wrap(int in, int cap)
   if (in >= cap) return cap-in;
   return in; 
 }
+
+// for the the other motors
+void runArmMotors() 
+{
+  if (lState == M_WANDER) {
+    mWander(lMotor); 
+  } 
+  else if (lState == M_TWITCH) {
+    mTwitch(lMotor);
+  } 
+  else if (lState == M_STOP) {
+    mStop(lMotor);
+  } 
+  else if (lState == M_RAMP_UP) {
+    mRampUp(lMotor);
+  } 
+  else if (lState == M_RAMP_DOWN) {
+    mRampDown(lMotor);
+  }
+
+  if (rState == M_WANDER) {
+    mWander(rMotor); 
+  } 
+  else if (rState == M_TWITCH) {
+    mTwitch(rMotor);
+  } 
+  else if (rState == M_STOP) {
+    mStop(rMotor);
+  } 
+  else if (rState == M_RAMP_UP) {
+    mRampUp(rMotor);
+  } 
+  else if (rState == M_RAMP_DOWN) {
+    mRampDown(rMotor);
+  }
+}
+
+// wanders at fairly random speeds for random amounts of time
+// maybe a good idea to come up with some significant numbers for this
+void mWander(int motor) 
+{
+  static int cap = millis() + random(250,1000);
+  static int power = random(20, 255);
+
+  if (millis() < cap) {
+    analogWrite(motor, power); 
+  } 
+  else {
+    cap = millis() + random(250, 1000);
+    power = random(50,200); 
+  }
+}
+
+// twitches at random time intervals
+void mTwitch(int motor)
+{
+  static int twitch = 1;
+  static int power = 255;
+  static int length = 2;
+  static int first = 1;
+  static long time;
+  
+  if (twitch) {
+    if (first) {
+        time = millis() + length;
+        first = 0;
+    }
+    if (millis() <= time)
+      analogWrite(motor, power);
+    else {
+       twitch = 0;
+       time = millis() + random(50,500);
+    } 
+  } else {
+    analogWrite(motor, 0);
+     if (millis() >= time) {
+        twitch = 1;
+        first = 1;
+     } 
+  }
+
+}
+
+// ramps upwards to max speed
+// (will need to be careful with the super fast one)
+void mRampUp(int motor)
+{
+  static int power = 0;
+  static int rate = 30;
+  static long time = millis();
+
+  if (millis() % rate == 0 && time != millis()) {
+    time = millis();
+    if (power < 255)
+      analogWrite(motor, power++);
+    else 
+      analogWrite(motor, 255);
+  }
+}
+
+// ramps down from max to nothing
+// if called off a speed other than max, will kind of twitch
+void mRampDown(int motor)
+{
+  static int power = 255;
+  static int rate = 30;
+  static long time = millis();
+  if (millis() % rate == 0 && time != millis()) {
+    if (power > 0)
+      analogWrite(motor, power--);
+    else
+      analogWrite(motor, 0); 
+  } 
+}  
+
+void mStop(int motor)
+{
+  analogWrite(motor, 0); 
+}
+
 
 
 
