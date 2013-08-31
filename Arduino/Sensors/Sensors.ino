@@ -1,9 +1,16 @@
+// pins
 const int ultrasound = A15;
 const int infrared = A14;
 const int pressure = A13;
 
-//START AT THE FOURTH STATE
-int currentstate = 3;
+// states
+const int CHILLING = 0;
+const int WAITING = 1;
+const int RECORDING = 2;
+const int SPEEDUP = 3;
+
+//start at the fourth state?
+int currentstate = SPEEDUP;
 
 //READINGS ARE US/IR/Pressure
 int readings[] = {
@@ -36,7 +43,7 @@ void loop(){
   switch(currentstate){
 
     //IF WE ARE IN THE FIRST STATE
-  case 0: 
+  case CHILLING: 
     //                 USTHRESHOLD            IRTHRESHOLD
     if ((readings[0] > 100) && (readings[1] > 23)){
       currentstate = 1;
@@ -45,7 +52,7 @@ void loop(){
 
 
     //IF WE ARE IN THE SECOND STATE
-  case 1:
+  case WAITING:
 
     //WAIT FOR A MESSAGE FROM ChucK
     if (Serial.available() > 0){
@@ -55,7 +62,7 @@ void loop(){
     break;
 
     // IF WE ARE IN THE 3rd STATE
-  case 2:
+  case RECORDING:
 
     //WAIT FOR A MESSAGE FROM ChucK
     if (Serial.available() > 0){
@@ -64,7 +71,7 @@ void loop(){
     }
     break;
 
-  case 3: 
+  case SPEEDUP: 
     /*if(motoroutput > motorthreshold){
      currentstate = 0;
      }
