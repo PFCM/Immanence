@@ -68,10 +68,16 @@ while (true)
         data[0] => currentstate;
         if(currentstate == WAITING){
             <<<"WAITING  :  " + data[1] + "  :  " + data[2]>>>;
+            // This thing that we spork is actually our FFT analyzer
+            //waiting for a vocal onset. Once this occurs it will send
+            //any random 1 character message to Arduino -- serial<= "n" <= IO.newline();
             spork~ thing();
         }
         if(currentstate == RECORDING){
             <<<"RECORDING  :  " + data[1] + "  :  " + data[2]>>>;
+            //This thing that gets sporked will start recording an input
+            //and will also have hysteresis to determine a stopping point
+            //for the audio. it will then send any
             spork~thing();
             
         }
@@ -95,9 +101,10 @@ fun void thing(){
     kb => now;  
     if(kb.recv(msg)){
         
-        if (msg.isButtonDown())
+       // if (msg.isButtonDown())
         {
-            serial.write("\n");
+            serial <= "n";
         }
     }
 }
+

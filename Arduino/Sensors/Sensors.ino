@@ -17,6 +17,8 @@ int readingsize = 3; //Change this once the pressure has been attached
 int readings[] = {
   0,0,0,0};
 
+int count = 0;
+
 
 void setup(){
 
@@ -31,7 +33,7 @@ void loop(){
   readings[3] = map(analogRead(pressure),0,1024,0,127);
 
   //Tim's super Proto-cool
-serialPrint(readings);
+  serialPrint(readings);
   //Serial.print(EncoderPostion) as (DEGREES/3)
 
 
@@ -40,11 +42,19 @@ serialPrint(readings);
     //IF WE ARE IN THE FIRST STATE
   case CHILLING: 
     //                 USTHRESHOLD            IRTHRESHOLD
-    if ((readings[0] > 100) && (readings[1] > 23)){
-      currentstate = 1;
-      break; 
-    }
+        count++;
 
+    if (count > 100){
+      currentstate = 1; 
+      count = 0;
+    }
+    /*
+    if ((readings[1] > 600)){
+      currentstate = 1;
+       
+    }
+    */
+break;
 
     //IF WE ARE IN THE SECOND STATE
   case WAITING:
@@ -63,14 +73,17 @@ serialPrint(readings);
     if (Serial.available() > 0){
       int temp =  Serial.read();
       currentstate = 3;
+      count = 0;
     }
     break;
 
   case SPEEDUP: 
-    /*if(motoroutput > motorthreshold){
-     currentstate = 0;
-     }
-     */
+    count++;
+
+    if (count > 100){
+      currentstate = 0; 
+      count = 0;
+    }
     break;
   }
 
@@ -80,7 +93,7 @@ serialPrint(readings);
 void serialPrint(int x[]){
   //Start with a left brace
   Serial.print("[");
-  
+
   //Print all the characters within the array (except the last one), followed by a comma
   for (int i = 0; i < readingsize-1; i++)
   {
@@ -92,6 +105,7 @@ void serialPrint(int x[]){
   //Right Brace
   Serial.print("]");
   //End Line
-  Serial.print("\n");
+  Serial.println();//("\n");
 }
+
 
