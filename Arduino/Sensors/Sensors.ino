@@ -1,7 +1,7 @@
 // pins
-const int ultrasound = A15;
-const int infrared = A14;
-const int pressure = A13;
+const int ultrasound = A0;
+const int infrared = A1;
+const int pressure = A2;
 
 // states
 const int CHILLING = 0;

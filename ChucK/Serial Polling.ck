@@ -30,7 +30,7 @@ for( int i; i < list.cap(); i++ )
 {
     chout <= i <= ": " <= list[i] <= IO.newline();
 }
-if(!serial.open(0, SerialIO.B9600, SerialIO.ASCII)) {
+if(!serial.open(3, SerialIO.B9600, SerialIO.ASCII)) {
     <<<"did not open">>>   ;
 }
 
