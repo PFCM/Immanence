@@ -4,7 +4,7 @@ const int rMotor = 9;
 
 volatile byte newB;
 volatile byte oldA;
-volatile int encoderPos;
+volatile long encoderPos;
 
 // states for the encoder motor (head)
 int emState = 0;
@@ -12,7 +12,9 @@ const int EM_SEARCH = 0;
 const int EM_STOP = 1;
 const int EM_RAMP = 2;
 
-const int EM_STOP_POINT = 4330;
+long EM_STOP_POINT = 436587;
+long revs = 0;
+long error = 07500;
 
 // states for arm motors
 // not the motors are different, so applying the same
@@ -52,23 +54,31 @@ void loop() {
   if (millis() - start == 5000) {
     emState = EM_STOP;
     lState = M_RAMP_UP;
+    rState = M_RAMP_UP;
     Serial.println("STOPPING");
   }
   else if (millis() - start == 10000) {
     emState = EM_RAMP;
     lState = M_RAMP_DOWN;
+    rState = M_RAMP_DOWN;
     Serial.println("RAMPING");
   }
   else if (millis() - start == 13000) {
     emState = EM_SEARCH;
     lState = M_WANDER;
+    rState = M_WANDER;
     Serial.println("SEARCHING");
   }
   else if (millis() - start == 18000) {
     emState = EM_STOP;
     lState = M_TWITCH;
+    rState = M_TWITCH;
     Serial.println("STOPPING");
+    
+    start = millis()+5000;
   }
+  
+  
 }  
 
 void doEncoderA()
@@ -85,8 +95,13 @@ void doEncoderB()
 
 void doEncoder()
 {
-  encoderPos += newB ^ oldA;
-  encoderPos %= 4331; // this is not precise, after a few revs it gets all jacked up
+  static long lastPos = 0;
+  encoderPos += (newB ^ oldA)*100;
+  encoderPos %= EM_STOP_POINT+1; 
+  if (lastPos > encoderPos)
+    revs++;
+  lastPos = encoderPos;
+  
 }
 
 // runs the encoder motor, depending on what state it should be in at the moment
@@ -141,22 +156,25 @@ void emSearch()
 void emStop()
 {
   static int madeit = 0;
-  if (abs(encoderPos - EM_STOP_POINT) > 3 && !madeit) {
-    float dist =  EM_STOP_POINT - encoderPos;
-    if (dist > 0 && dist > 4331/2)
+  float dist = (abs((EM_STOP_POINT-error*revs)-encoderPos));
+  if (dist > 8000) madeit=0;
+  if (madeit==0) {
+    if (dist > 433088/2)
       analogWrite(encMotor, 40);
-    else if (dist > 0 && dist > 400)
+    else if (dist > 20000)
       analogWrite(encMotor, 25); 
-    else if (dist > 0 && dist < 400 && dist > 100)
-      analogWrite(encMotor, 17);
-    else if (dist > 0 && dist < 3) {
+    else if (dist <= 20000 && dist > 8000)
+      analogWrite(encMotor, 15);
+    else if (dist <= 8000) {
       madeit = 1;
+      Serial.println("madeit");
     }
     else 
-      analogWrite(encMotor, 15);
+      analogWrite(encMotor, 0);
   } 
   else {
     analogWrite(encMotor, 0); 
+   // Serial.println("stopped");
     // if (encoderPos != EM_STOP_POINT) madeit = 0;
   }
 }
@@ -255,7 +273,7 @@ void mTwitch(int motor)
       analogWrite(motor, power);
     else {
        twitch = 0;
-       time = millis() + random(50,500);
+       time = millis() + random(100,500);
     } 
   } else {
     analogWrite(motor, 0);
