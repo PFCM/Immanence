@@ -53,23 +53,23 @@ void loop() {
 // for the sake of testing
   if (millis() - start == 5000) {
     emState = EM_STOP;
-    lState = M_RAMP_UP;
-    rState = M_RAMP_UP;
+    lState = M_RAMP_DOWN;
+    rState = M_RAMP_DOWN;
     Serial.println("STOPPING");
   }
   else if (millis() - start == 10000) {
     emState = EM_RAMP;
-    lState = M_RAMP_DOWN;
-    rState = M_RAMP_DOWN;
+    lState = M_RAMP_UP;
+    rState = M_RAMP_UP;
     Serial.println("RAMPING");
   }
-  else if (millis() - start == 13000) {
+  else if (millis() - start == 15000) {
     emState = EM_SEARCH;
     lState = M_WANDER;
     rState = M_WANDER;
     Serial.println("SEARCHING");
   }
-  else if (millis() - start == 18000) {
+  else if (millis() - start == 20000) {
     emState = EM_STOP;
     lState = M_TWITCH;
     rState = M_TWITCH;
@@ -183,7 +183,7 @@ void emRamp()
 { 
   static int target = 255;
   static int power = 0;
-  static int rate = 10;
+  static int rate = 50;
   static long time = millis();
   if (millis() % rate == 1 && millis() != time) {
     time = millis();
@@ -290,7 +290,7 @@ void mTwitch(int motor)
 void mRampUp(int motor)
 {
   static int power = 0;
-  static int rate = 30;
+  static int rate = 100;
   static long time = millis();
 
   if (millis() % rate == 0 && time != millis()) {
@@ -307,7 +307,7 @@ void mRampUp(int motor)
 void mRampDown(int motor)
 {
   static int power = 255;
-  static int rate = 30;
+  static int rate = 60;
   static long time = millis();
   if (millis() % rate == 0 && time != millis()) {
     if (power > 0)

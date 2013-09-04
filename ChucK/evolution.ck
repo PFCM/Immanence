@@ -3,19 +3,20 @@
 // Load a soundbuf
 SndBuf soundfile;
 //"/Users/pfcmathews/aspenselfconvx1.wav" => soundfile.read; 
-me.dir() + "/audio/cowbell_01.wav" => soundfile.read;
+//me.dir() + "/audio/cowbell_01.wav" => soundfile.read;
 
 
 // variables for changing the targets while in flux
 // might need quite a high instability (mutation rate) 
 // for this to be effective
-0.5 => float targetRate;
+1.0 => float targetRate;
 0.1 => float targetRateRange;
-2000::ms => dur targetSize;
+1000::ms => dur targetSize;
 0 => int targetBi;
 
 // LiSa
-adc => LiSa lisa => dac;
+adc => LiSa lisa => JCRev r /*=> Warble w*/ =>  dac;
+.01 => r.mix;
 targetSize*2 => lisa.duration;
 10 => lisa.maxVoices;
 
@@ -25,9 +26,9 @@ for (0 => int i; i < soundfile.samples(); i++)
     (soundfile.valueAt(i), i::samp) => lisa.valueAt;
 }*/
 
-dac => Gain g => WvOut w => blackhole;
+/*dac => Gain g => WvOut w => blackhole;
 "evolution example.wav" => w.wavFilename;
-null @=> w;
+null @=> w;*/
 
 lisa.record(1);
 targetSize*2 => now;
@@ -54,13 +55,13 @@ fun float fitness(Voice v)
     // all of our values start from the origin
     v.rate-targetRate => float a;
     (v.size-targetSize)/second => float b;
-    (v.bi - targetBi) * 0.5 => float c; // weighting this to slow down how quickly it gets evolved out
+    (v.bi - targetBi) /* 0.5*/ => float c; // weighting this to slow down how quickly it gets evolved out
     
-    /*Math.sqrt*/(a*a + b*b + c*c) => val; //might as well just use the square
+    /*Math.sqrt*/1/(a*a + b*b + c*c) => val; //might as well just use the square
     
-    <<<v.rate, v.size/second, v.bi, 1.0/val>>>;
+    <<<v.rate, v.size/second, v.bi, val>>>;
     
-    return 1.0/val;
+    return val;
 }
 
 // does everything necessary to advance generations
@@ -162,9 +163,9 @@ while (true) {
 private class Voice 
 {
     -1 => int index;
-    Math.random2f(0.125,4) => float rate;
+    Math.random2f(-4,4) => float rate;
     Math.random2(0,1) => int bi;
-    Math.random2(2, 5000)::ms => dur size;
+    Math.random2(200, 5000)::ms => dur size;
     
     fun void set(LiSa to, dur start) 
     {
