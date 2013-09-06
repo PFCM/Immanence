@@ -3,6 +3,11 @@ const int ultrasound = A15;
 const int infrared = A14;
 const int pressure = A13;
 
+/*   --- UNO PINS FROM SCHEMATIC --  
+ const int ultrasound = A1;
+ const int infrared = A0;
+ const int pressure = A2;
+ */
 // states
 const int CHILLING = 0;
 const int WAITING = 1;
@@ -28,7 +33,7 @@ void setup(){
 
 void loop(){
   readings[0] = currentstate;
-  readings[1] = analogRead(ultrasound); //map(analogRead(ultrasound),1023,0,0,127);
+  readings[1] = 1024 - analogRead(ultrasound); //map(analogRead(ultrasound),1023,0,0,127);
   readings[2] = analogRead(infrared); //map(analogRead(infrared),1023,0,0,127); 
   readings[3] = map(analogRead(pressure),0,1024,0,127);
 
@@ -42,19 +47,20 @@ void loop(){
     //IF WE ARE IN THE FIRST STATE
   case CHILLING: 
     //                 USTHRESHOLD            IRTHRESHOLD
-        count++;
+    count++;
+    if (readings[1] < 980){
 
-    if (count > 100){
-      currentstate = 1; 
-      count = 0;
+      if (readings[2] < 50){
+        currentstate = 1; 
+      }
     }
     /*
-    if ((readings[1] > 600)){
-      currentstate = 1;
-       
-    }
-    */
-break;
+      if ((readings[1] > 600)){
+     currentstate = 1;
+     
+     }
+     */
+    break;
 
     //IF WE ARE IN THE SECOND STATE
   case WAITING:
@@ -62,6 +68,7 @@ break;
     //WAIT FOR A MESSAGE FROM ChucK
     if (Serial.available() > 0){
       int temp =  Serial.read();
+      Serial.flush();
       currentstate = 2;
     }
     break;
@@ -72,6 +79,7 @@ break;
     //WAIT FOR A MESSAGE FROM ChucK
     if (Serial.available() > 0){
       int temp =  Serial.read();
+      Serial.flush();
       currentstate = 3;
       count = 0;
     }
@@ -107,5 +115,6 @@ void serialPrint(int x[]){
   //End Line
   Serial.println();//("\n");
 }
+
 
 

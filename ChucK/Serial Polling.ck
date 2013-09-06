@@ -1,6 +1,9 @@
 Hid kb;
 0 => int device;
 
+SinOsc s => dac;
+
+0 => s.gain;
 
 //Open keyboard and mouse.
 
@@ -72,6 +75,14 @@ while (true)
             //waiting for a vocal onset. Once this occurs it will send
             //any random 1 character message to Arduino -- serial<= "n" <= IO.newline();
             spork~ thing();
+            Std.mtof(60) => s.freq;
+            84 => Std.mtof => s.freq;
+            0.3 => s.gain;
+            500::ms => now;
+            79 => Std.mtof => s.freq;
+            500::ms => now;
+            0 => s.gain;
+            
         }
         if(currentstate == RECORDING){
             <<<"RECORDING  :  " + data[1] + "  :  " + data[2]>>>;
