@@ -16,7 +16,7 @@ SndBuf soundfile;
 int current;
 
 // LiSa
-JCRev r /*=> Warble w*/ =>  dac;
+JCRev r =>  dac;
 LiSa lisa[3];
 .01 => r.mix;
 
