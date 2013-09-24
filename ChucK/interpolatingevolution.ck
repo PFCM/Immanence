@@ -3,8 +3,6 @@
 
 // Load a soundbuf
 SndBuf soundfile;
-//"/Users/pfcmathews/aspenselfconvx1.wav" => soundfile.read; 
-//me.dir() + "/audio/cowbell_01.wav" => soundfile.read;
 
 
 // variables for changing the targets while in flux

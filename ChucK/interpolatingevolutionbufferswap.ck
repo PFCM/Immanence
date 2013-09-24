@@ -2,8 +2,6 @@
 
 // Load a soundbuf
 SndBuf soundfile;
-//"/Users/pfcmathews/aspenselfconvx1.wav" => soundfile.read; 
-//me.dir() + "/audio/cowbell_01.wav" => soundfile.read;
 
 
 // variables for changing the targets while in flux
@@ -23,7 +21,7 @@ LiSa lisa[3];
 for (int i; i < lisa.cap(); i++) 
 {
     targetSize*2 => lisa[i].duration;
-    10 => lisa[i].maxVoices;
+    4 => lisa[i].maxVoices;
     adc => lisa[i] => r;
     lisa[i].record(1);
 }
@@ -36,17 +34,20 @@ for (int i; i < lisa.cap(); i++)
     lisa[i].loopRec(0);
 }
 
-0.5 => lisa[0].gain;
+1.0 => lisa[0].gain;
 0.0 => lisa[1].gain => lisa[2].gain;
 
 // set up our initial population
 Voice population[lisa[0].maxVoices()];
+Voice nextPopulation[lisa[0].maxVoices()];
 float fitnesses[population.cap()];
 for (0 => int i; i < population.cap(); i++)
 {
     for (int j; j < lisa.cap(); j++)
         population[i].set(lisa[j], 0.1::ms, i);
 }
+
+nextGeneration(population, nextPopulation, fitnesses, lisa[0]);
 
 // fitness function, assess differences between parameters and some target
 // try and express as a float somehow
@@ -70,10 +71,9 @@ fun float fitness(Voice v)
 }
 
 // does everything necessary to advance generations
-fun void nextGeneration(Voice pop[], float fit[], LiSa l) 
+fun void nextGeneration(Voice pop[], Voice dest[], float fit[], LiSa l) 
 {
-    for (int i; i < population.cap(); i++)
-        population[i].stopLoop();
+    
     <<<"Producing next generation">>>;
     0 => float sum;
     for (0 => int i; i < pop.cap(); i++)
@@ -113,17 +113,15 @@ fun void nextGeneration(Voice pop[], float fit[], LiSa l)
             }
         }
         Voice child;
-        breed(a,b, child) @=> pop[n];
+        breed(a,b, child) @=> dest[n];
         pop[n].set(l, 0.1::ms, n);
     }
     
     <<<"applying mutations">>>;
     0.10 => float mutRate;
     if (sum < l.maxVoices()) mutRate * 2 => mutRate;
-    mutate(pop, mutRate);
+    mutate(dest, mutRate);
     
-    for (int i; i < population.cap(); i++)
-        population[i].startLoop(lisa[current]);
 }
 
 // combines random aspects of two voices, should probably combine best ones but who knows
@@ -159,8 +157,13 @@ fun void mutate(Voice pop[], float mRate)
 }
 
 while (true) {
+    for (int i; i < population.cap(); i++)
+        population[i].startLoop(lisa[current]);
     5::second => now;
-    nextGeneration(population, fitnesses, lisa[current]);
+    for (int i; i < population.cap(); i++)
+        population[i].stopLoop();
+    // interpolation is handled internally
+    
     (1+current)%lisa.cap() => current;
     for (int i; i<lisa.cap(); i++)
     {
@@ -172,11 +175,28 @@ while (true) {
                 lisa[i].rampUp(j,100::ms);
         }
     }
-    0.5 => lisa[current].gain;
+    1.0 => lisa[current].gain;
     0.0 => lisa[(current+1)%lisa.cap()].gain;
     0.0 => lisa[(current+2)%lisa.cap()].gain;
-  //  1 => lisa.record;
-  //  1::second => now;
+    
+    nextPopulation @=> population;
+    new Voice[population.cap()] @=> nextPopulation;
+    nextGeneration(population, nextPopulation, fitnesses, lisa[current]);
+    setDeltas(population, nextPopulation, 50);
+}
+
+// this figures out how far we need to go for each interpolation step
+// and sets it up for us in the population
+fun void setDeltas(Voice pop[], Voice next[], int steps)
+{
+    for (int i; i < pop.cap(); i++)
+    {
+        (next[i].rate - pop[i].rate)/(steps$float) => float dRate;
+        (next[i].loopEnd - pop[i].loopEnd)/(steps$float) => dur dEnd;
+        
+        dRate => pop[i].dRate;
+        dEnd => pop[i].dEnd;
+    }
 }
 
 // this represents a voice for our LiSa
@@ -192,6 +212,9 @@ private class Voice
     dur loopStart;
     dur loopEnd;
     Shred shred;
+    // for interpolation
+    float dRate;
+    dur dEnd;
     100::ms => dur fade;
     
     fun void set(LiSa to, dur start) 
@@ -245,12 +268,18 @@ private class Voice
                     fade => now;
                 }
             }
-            1::ms => now;
+            dRate +=> rate;
+            dEnd +=> loopEnd;
+            
+            l.rate(index, rate);
+            
+            10::ms => now;
         }
     }
     
     fun void startLoop(LiSa l)
     {
+        set(l, 20::ms);
         spork ~ doLoop(l) @=> shred;
     }
     
