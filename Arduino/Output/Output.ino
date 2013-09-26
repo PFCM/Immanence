@@ -1,6 +1,6 @@
-const int encMotor = 11;
+const int encMotor = 9;
 const int lMotor = 10;
-const int rMotor = 9;
+const int rMotor = 11;
 
 volatile byte newB;
 volatile byte oldA;
@@ -12,12 +12,10 @@ const int EM_SEARCH = 0;
 const int EM_STOP = 1;
 const int EM_RAMP = 2;
 
-long EM_STOP_POINT = 436587;
-long revs = 0;
-long error = 07500;
+long EM_STOP_POINT = 4331;
 
 // states for arm motors
-// not the motors are different, so applying the same
+// note the motors are different, so applying the same
 // settings will have different outcomes
 int lState = 0;
 int rState = 0;
@@ -35,8 +33,8 @@ void setup() {
   pinMode(rMotor, OUTPUT);
 
   // attach interrupts
-  attachInterrupt(0, doEncoderA, CHANGE);
-  attachInterrupt(1, doEncoderB, CHANGE);
+  attachInterrupt(1, doEncoderA, CHANGE);
+  attachInterrupt(0, doEncoderB, CHANGE);
 
   Serial.begin(9600);
 }
@@ -69,7 +67,7 @@ void loop() {
     rState = M_WANDER;
     Serial.println("SEARCHING");
   }
-  else if (millis() - start == 20000) {
+  else if (millis() - start == 25000) {
     emState = EM_STOP;
     lState = M_TWITCH;
     rState = M_TWITCH;
@@ -84,22 +82,20 @@ void loop() {
 void doEncoderA()
 {
   doEncoder();
-  oldA = digitalRead(2);
+  oldA = digitalRead(3);
 }
 
 void doEncoderB()
 {
-  newB = digitalRead(3);
+  newB = digitalRead(2);
   doEncoder();
 }
 
 void doEncoder()
 {
   static long lastPos = 0;
-  encoderPos += (newB ^ oldA)*100;
+  encoderPos += (newB ^ oldA);
   encoderPos %= EM_STOP_POINT+1; 
-  if (lastPos > encoderPos)
-    revs++;
   lastPos = encoderPos;
   
 }
@@ -155,28 +151,16 @@ void emSearch()
 // when the motor is loaded
 void emStop()
 {
-  static int madeit = 0;
-  float dist = (abs((EM_STOP_POINT-error*revs)-encoderPos));
-  if (dist > 8000) madeit=0;
-  if (madeit==0) {
-    if (dist > 433088/2)
-      analogWrite(encMotor, 40);
-    else if (dist > 20000)
+  float dist = (abs((EM_STOP_POINT)-encoderPos));
+    if (dist > 4331/2)
+      analogWrite(encMotor, 34);
+    else if (dist > 100)
       analogWrite(encMotor, 25); 
-    else if (dist <= 20000 && dist > 8000)
-      analogWrite(encMotor, 15);
-    else if (dist <= 8000) {
-      madeit = 1;
-      Serial.println("madeit");
-    }
-    else 
+    else if (dist <= 100 && dist > 50)
+      analogWrite(encMotor, 17);
+    else if (dist <= 50) {
       analogWrite(encMotor, 0);
-  } 
-  else {
-    analogWrite(encMotor, 0); 
-   // Serial.println("stopped");
-    // if (encoderPos != EM_STOP_POINT) madeit = 0;
-  }
+    } 
 }
 
 void emRamp()
@@ -207,7 +191,7 @@ int wrap(int in, int cap)
 void runArmMotors() 
 {
   if (lState == M_WANDER) {
-    mWander(lMotor); 
+    mWander(lMotor, 50,200); 
   } 
   else if (lState == M_TWITCH) {
     mTwitch(lMotor);
@@ -223,7 +207,7 @@ void runArmMotors()
   }
 
   if (rState == M_WANDER) {
-    mWander(rMotor); 
+    mWander(rMotor, 100,255); 
   } 
   else if (rState == M_TWITCH) {
     mTwitch(rMotor);
@@ -241,7 +225,7 @@ void runArmMotors()
 
 // wanders at fairly random speeds for random amounts of time
 // maybe a good idea to come up with some significant numbers for this
-void mWander(int motor) 
+void mWander(int motor, int base, int top) 
 {
   static int cap = millis() + random(250,1000);
   static int power = random(20, 255);
@@ -251,7 +235,7 @@ void mWander(int motor)
   } 
   else {
     cap = millis() + random(250, 1000);
-    power = random(50,200); 
+    power = random(base,top); 
   }
 }
 

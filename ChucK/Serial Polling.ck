@@ -69,7 +69,7 @@ fun void serialPoller(){
 fun void recordListener() {
     while (true) {
         flags.startRecording => now;
-        serial <= "n" <= IO.newLine();
+        serial <= "n" <= IO.newline();
         1::second => now;
     }
 }

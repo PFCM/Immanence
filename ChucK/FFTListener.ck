@@ -3,8 +3,6 @@
 Flags flags;
 
 
-new Event @=> flags.startRecording;
-new Event @=> flags.stopRecording;
 
 adc => FFT fft =^ RMS rms => blackhole;
 
