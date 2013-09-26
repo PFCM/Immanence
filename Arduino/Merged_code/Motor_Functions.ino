@@ -49,7 +49,7 @@ void emSearch()
 void emStop()
 {
   static int madeit = 0;
-  float dist = (abs((EM_STOP_POINT-error*revs)-encoderPos));
+  float dist = (abs((EM_STOP_POINT)-encoderPos));
   if (dist > 8000) madeit=0;
   if (madeit==0) {
     if (dist > 433088/2)

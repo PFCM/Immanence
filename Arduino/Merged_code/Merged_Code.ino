@@ -18,7 +18,6 @@ const int EM_RAMP = 2;
 
 long EM_STOP_POINT = 436587;
 long revs = 0;
-long error = 07500;
 
 // states for arm motors
 // not the motors are different, so applying the same
@@ -49,6 +48,8 @@ int currentstate = SPEEDUP;
 int readingsize = 3; //Change this once the pressure has been attached
 int readings[] = {
   0,0,0,0};
+int lastReadings[3];
+
 
 int count = 0;
 
@@ -76,9 +77,12 @@ void loop(){
   {
     time = millis();
     readings[0] = currentstate;
-    readings[1] = 1024 - analogRead(ultrasound); //map(analogRead(ultrasound),1023,0,0,127);
-    readings[2] = analogRead(infrared); //map(analogRead(infrared),1023,0,0,127); 
+    readings[1] = (analogRead(ultrasound) + lastReadings[1])/2; 
+    readings[2] = (analogRead(infrared) + lastReadings[2])/2; 
     readings[3] = map(analogRead(pressure),0,1024,0,127);
+    
+    for (int i = 0; i < 4; i++)
+      lastReadings[i] = readings[i];
 
     //Tim's super Proto-cool
     serialPrint(readings);
@@ -91,7 +95,7 @@ void loop(){
     case CHILLING: 
       //                 USTHRESHOLD            IRTHRESHOLD
       count++;
-      if (readings[1] < 980){
+      if (readings[1] > 80){
 
         if (readings[2] < 50){
           currentstate = 1; 
@@ -151,7 +155,7 @@ void serialPrint(int x[]){
   Serial.print("[");
 
   //Print all the characters within the array (except the last one), followed by a comma
-  for (int i = 0; i < readingsize-1; i++)
+  for (int i = 0; i < readingsize; i++)
   {
     Serial.print(x[i]);
     Serial.print(",");

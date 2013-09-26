@@ -1,3 +1,7 @@
+Flags flags;
+new Event @=> flags.startRecording;
+new Event @=> flags.stopRecording;
+
 Hid kb;
 0 => int device;
 
@@ -18,8 +22,8 @@ HidMsg msg;
 
 SerialIO serial;
 string line;
-string stringInts[3];
-int data[3];
+string stringInts[4];
+int data[4];
 
 int currentstate;
 
@@ -33,7 +37,7 @@ for( int i; i < list.cap(); i++ )
 {
     chout <= i <= ": " <= list[i] <= IO.newline();
 }
-if(!serial.open(3, SerialIO.B9600, SerialIO.ASCII)) {
+if(!serial.open(2, SerialIO.B9600, SerialIO.ASCII)) {
     <<<"did not open">>>   ;
 }
 
@@ -61,49 +65,54 @@ fun void serialPoller(){
         }
     }
 }
+
+fun void recordListener() {
+    while (true) {
+        flags.startRecording => now;
+        serial <= "n" <= IO.newLine();
+        1::second => now;
+    }
+}
 spork ~ serialPoller();
+spork ~ recordListener();
 
 // COMPOSITION
+int once;
 while (true)
 {
     if (data[0] != currentstate){
         
         data[0] => currentstate;
         if(currentstate == WAITING){
-            <<<"WAITING  :  " + data[1] + "  :  " + data[2]>>>;
+            <<<"WAITING  :  " + data[1], data[2], data[3]>>>;
             // This thing that we spork is actually our FFT analyzer
             //waiting for a vocal onset. Once this occurs it will send
             //any random 1 character message to Arduino -- serial<= "n" <= IO.newline();
             spork~ thing();
-            Std.mtof(60) => s.freq;
-            84 => Std.mtof => s.freq;
-            0.3 => s.gain;
-            500::ms => now;
-            79 => Std.mtof => s.freq;
-            500::ms => now;
-            0 => s.gain;
-            
+            me.dir() => string dir;
+            Machine.add(dir + "FFTListener.ck");
+            Machine.add(dir + "evolutionbufferswap.ck");
         }
         if(currentstate == RECORDING){
-            <<<"RECORDING  :  " + data[1] + "  :  " + data[2]>>>;
+            <<<"RECORDING  :  " + data[1], data[2], data[3]>>>;
             //This thing that gets sporked will start recording an input
             //and will also have hysteresis to determine a stopping point
             //for the audio. it will then send any
             spork~thing();
             
         }
-    }
-    
-    if(currentstate == CHILLING){
-        <<<"CHILLING  :  " + data[1] + "  :  " + data[2]>>>;
-    }
-    
-    if(currentstate == SPEEDUP){
-        <<<"SPEEDUP  :  " + data[1] + "  :  " + data[2]>>>;
         
+        if(currentstate == CHILLING){
+            <<<"CHILLING  :  " + data[1], data[2], data[3]>>>;
+        }
+        
+        if(currentstate == SPEEDUP){
+            <<<"SPEEDUP  :  " + data[1], data[2], data[3]>>>;
+            
+        }
     }
     
-    10::ms => now;
+    50::ms => now;
 }
 
 fun void thing(){
