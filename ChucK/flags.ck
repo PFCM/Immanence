@@ -1,4 +1,4 @@
 public class Flags {
-    static Event @ startRecording;
-    static Event @ stopRecording;
+    static int startRecording;
+    static int stopRecording;
 }

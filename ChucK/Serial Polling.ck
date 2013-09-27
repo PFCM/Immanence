@@ -1,6 +1,4 @@
 Flags flags;
-new Event @=> flags.startRecording;
-new Event @=> flags.stopRecording;
 
 Hid kb;
 0 => int device;
@@ -68,9 +66,11 @@ fun void serialPoller(){
 
 fun void recordListener() {
     while (true) {
-        flags.startRecording => now;
-        serial <= "n" <= IO.newline();
-        1::second => now;
+        if (flags.startRecording) {
+            serial <= "n" <= IO.newline();
+            0 => flags.startRecording;
+        }
+        1::ms => now;
     }
 }
 spork ~ serialPoller();
