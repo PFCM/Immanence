@@ -1,15 +1,17 @@
 Flags flags;
 
-new Event @=> flags.startRecording;
-new Event @=> flags.stopRecording;
-
 fun void stopRecroding()
 {
-    flags.stopRecording => now;
+    while(flags.stopRecording == 0)
+        1::ms => now;
     <<<"Stopped">>>;
 }
 
 spork ~ stopRecroding();
 
-flags.startRecording => now;
+while (flags.startRecording == 0)
+    1::ms => now;
 <<<"started">>>;
+
+while (true)
+    1::second => now;

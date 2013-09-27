@@ -1,9 +1,15 @@
 // Genetic
 
+Flags flags;
+1 => flags.simulationRunning;
 // Load a soundbuf
 SndBuf soundfile;
 //"/Users/pfcmathews/aspenselfconvx1.wav" => soundfile.read; 
 //me.dir() + "/audio/cowbell_01.wav" => soundfile.read;
+
+Std.atoi(me.arg(0)) => int whichpan;
+
+spork~ panner(whichpan);
 
 
 // variables for changing the targets while in flux
@@ -11,24 +17,34 @@ SndBuf soundfile;
 // for this to be effective
 1.0 => float targetRate;
 0.1 => float targetRateRange;
-1000::ms => dur targetSize;
+5000::ms => dur maxSize;
 0 => int targetBi;
 int current;
 
 // LiSa
-JCRev r =>  dac;
+JCRev r => Dyno limit => Pan2 pan =>  dac;
 LiSa lisa[3];
 .01 => r.mix;
 
+limit.limit();
+
+
+while (flags.recording == 0) 
+    1::ms => now;
+
 for (int i; i < lisa.cap(); i++) 
 {
-    targetSize*2 => lisa[i].duration;
-    10 => lisa[i].maxVoices;
+    maxSize => lisa[i].duration;
+    20 => lisa[i].maxVoices;
     adc => lisa[i] => r;
     lisa[i].record(1);
+    lisa[i].loopRec(1);
 }
 
-targetSize*2 => now;
+now => time start;
+while (flags.recording == 1)
+    1::ms => now;
+now-start => dur targetSize;
 
 for (int i; i < lisa.cap(); i++)
 {
@@ -64,7 +80,7 @@ fun float fitness(Voice v)
     
     /*Math.sqrt*/1/(a*a + b*b + c*c) => val; //might as well just use the square
     
-    <<<v.rate, v.size/second, v.bi, val>>>;
+   // <<<v.rate, v.size/second, v.bi, val>>>;
     
     return val;
 }
@@ -74,7 +90,7 @@ fun void nextGeneration(Voice pop[], float fit[], LiSa l)
 {
     for (int i; i < population.cap(); i++)
         population[i].stopLoop();
-    <<<"Producing next generation">>>;
+   // <<<"Producing next generation">>>;
     0 => float sum;
     for (0 => int i; i < pop.cap(); i++)
     {
@@ -89,7 +105,7 @@ fun void nextGeneration(Voice pop[], float fit[], LiSa l)
     }
     
     // now using these weights, construct a new population
-    <<<"Fitnesses calculated and normalised, breeding new generation">>>;
+   // <<<"Fitnesses calculated and normalised, breeding new generation">>>;
     Voice a,b;
     for (0 => int n; n < pop.cap(); n++)
     {
@@ -117,7 +133,7 @@ fun void nextGeneration(Voice pop[], float fit[], LiSa l)
         pop[n].set(l, 0.1::ms, n);
     }
     
-    <<<"applying mutations">>>;
+  //  <<<"applying mutations">>>;
     0.10 => float mutRate;
     if (sum < l.maxVoices()) mutRate * 2 => mutRate;
     mutate(pop, mutRate);
@@ -158,6 +174,7 @@ fun void mutate(Voice pop[], float mRate)
     }
 }
 
+now => time beginning;
 while (true) {
     5::second => now;
     nextGeneration(population, fitnesses, lisa[current]);
@@ -177,6 +194,11 @@ while (true) {
     0.0 => lisa[(current+2)%lisa.cap()].gain;
   //  1 => lisa.record;
   //  1::second => now;
+  if (now-beginning >= 50::second) {
+      0 => flags.simulationRunning;
+      <<<"LEAVING SIM">>>;
+      break;
+  }
 }
 
 // this represents a voice for our LiSa
@@ -257,5 +279,16 @@ private class Voice
     fun void stopLoop()
     {
         shred.exit();
+    }
+}
+
+fun void panner(int which) {
+    while (true) {
+        if (which) {
+            flags.panA => pan.pan;
+        } else {
+            flags.panB => pan.pan;
+        }
+        10::ms => now;
     }
 }

@@ -191,7 +191,7 @@ int wrap(int in, int cap)
 void runArmMotors() 
 {
   if (lState == M_WANDER) {
-    mWander(lMotor, 50,200); 
+    mWander(lMotor, 25,40); 
   } 
   else if (lState == M_TWITCH) {
     mTwitch(lMotor);
@@ -207,7 +207,7 @@ void runArmMotors()
   }
 
   if (rState == M_WANDER) {
-    mWander(rMotor, 100,255); 
+    mWander(rMotor, 25,60); 
   } 
   else if (rState == M_TWITCH) {
     mTwitch(rMotor);
@@ -228,7 +228,7 @@ void runArmMotors()
 void mWander(int motor, int base, int top) 
 {
   static int cap = millis() + random(250,1000);
-  static int power = random(20, 255);
+  static int power = random(base, top);
 
   if (millis() < cap) {
     analogWrite(motor, power); 
@@ -243,8 +243,8 @@ void mWander(int motor, int base, int top)
 void mTwitch(int motor)
 {
   static int twitch = 1;
-  static int power = 255;
-  static int length = 2;
+  static int power = 100;
+  static int length = 10;
   static int first = 1;
   static long time;
   
@@ -279,10 +279,10 @@ void mRampUp(int motor)
 
   if (millis() % rate == 0 && time != millis()) {
     time = millis();
-    if (power < 255)
+    if (power < 40)
       analogWrite(motor, power++);
     else 
-      analogWrite(motor, 255);
+      analogWrite(motor, 40);
   }
 }
 
@@ -290,7 +290,7 @@ void mRampUp(int motor)
 // if called off a speed other than max, will kind of twitch
 void mRampDown(int motor)
 {
-  static int power = 255;
+  static int power = 100;
   static int rate = 60;
   static long time = millis();
   if (millis() % rate == 0 && time != millis()) {

@@ -1,21 +1,17 @@
 void doEncoderA()
 {
   doEncoder();
-  oldA = digitalRead(2);
+  oldA = digitalRead(3);
 }
 
 void doEncoderB()
 {
-  newB = digitalRead(3);
+  newB = digitalRead(2);
   doEncoder();
 }
 
 void doEncoder()
 {
-  static long lastPos = 0;
-  encoderPos += (newB ^ oldA)*100;
+  encoderPos += (newB ^ oldA);
   encoderPos %= EM_STOP_POINT+1; 
-  if (lastPos > encoderPos)
-    revs++;
-  lastPos = encoderPos; 
 }

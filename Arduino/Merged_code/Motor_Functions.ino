@@ -14,14 +14,14 @@ void runEncMotor()
 void emSearch() 
 {
   static byte power = 0;
-  static byte cap = random(125, 255);
+  static byte cap = random(50, 150);
   static int searchState = 0;
   static long slowStart;
   static long time;
   if (searchState == 0) {
-    if (millis() % 10 == 0 && millis() != time) {
+    if (millis() % 5 == 0 && millis() != time) {
       time = millis();
-      power += 10;
+      power += 15;
       if (power >= cap) {
         searchState = 1; 
         slowStart = millis();
@@ -36,9 +36,7 @@ void emSearch()
     analogWrite(encMotor, power);
     if (millis() - slowStart >= 1000) {
       searchState = 0;
-      cap = random(125, 255);
-      Serial.print("new cap: "); 
-      Serial.println(cap);
+      cap = random(100, 225);
     }
   }
 }
@@ -48,28 +46,16 @@ void emSearch()
 // when the motor is loaded
 void emStop()
 {
-  static int madeit = 0;
   float dist = (abs((EM_STOP_POINT)-encoderPos));
-  if (dist > 8000) madeit=0;
-  if (madeit==0) {
-    if (dist > 433088/2)
-      analogWrite(encMotor, 40);
-    else if (dist > 20000)
-      analogWrite(encMotor, 25); 
-    else if (dist <= 20000 && dist > 8000)
+    if (dist > 4331/2)
+      analogWrite(encMotor, 25);
+    else if (dist > 100)
+      analogWrite(encMotor, 20); 
+    else if (dist <= 100 && dist > 50)
       analogWrite(encMotor, 15);
-    else if (dist <= 8000) {
-      madeit = 1;
-      Serial.println("madeit");
-    }
-    else 
+    else if (dist <= 50) {
       analogWrite(encMotor, 0);
-  } 
-  else {
-    analogWrite(encMotor, 0); 
-   // Serial.println("stopped");
-    // if (encoderPos != EM_STOP_POINT) madeit = 0;
-  }
+    } 
 }
 
 void emRamp()
@@ -97,10 +83,11 @@ int wrap(int in, int cap)
 }
 
 // for the the other motors
-void runArmMotors() 
+void runArmMotors(int val) 
 {
+  float scale = (float)val/600.0f;
   if (lState == M_WANDER) {
-    mWander(lMotor); 
+    mWander(lMotor, 20, scale*25 + 20); 
   } 
   else if (lState == M_TWITCH) {
     mTwitch(lMotor);
@@ -116,7 +103,7 @@ void runArmMotors()
   }
 
   if (rState == M_WANDER) {
-    mWander(rMotor); 
+    mWander(rMotor, 20, scale*35+20); 
   } 
   else if (rState == M_TWITCH) {
     mTwitch(rMotor);
@@ -134,17 +121,17 @@ void runArmMotors()
 
 // wanders at fairly random speeds for random amounts of time
 // maybe a good idea to come up with some significant numbers for this
-void mWander(int motor) 
+void mWander(int motor, int lowest, int highest) 
 {
   static int cap = millis() + random(250,1000);
-  static int power = random(20, 255);
+  static int power = random(lowest, highest);
 
   if (millis() < cap) {
     analogWrite(motor, power); 
   } 
   else {
     cap = millis() + random(250, 1000);
-    power = random(50,200); 
+    power = random(lowest, highest);
   }
 }
 
@@ -152,8 +139,8 @@ void mWander(int motor)
 void mTwitch(int motor)
 {
   static int twitch = 1;
-  static int power = 255;
-  static int length = 2;
+  static int power = 100;
+  static int length = 10;
   static int first = 1;
   static long time;
   
@@ -188,10 +175,10 @@ void mRampUp(int motor)
 
   if (millis() % rate == 0 && time != millis()) {
     time = millis();
-    if (power < 255)
+    if (power < 60)
       analogWrite(motor, power++);
     else 
-      analogWrite(motor, 255);
+      analogWrite(motor, 60);
   }
 }
 
@@ -199,7 +186,7 @@ void mRampUp(int motor)
 // if called off a speed other than max, will kind of twitch
 void mRampDown(int motor)
 {
-  static int power = 255;
+  static int power = 90;
   static int rate = 60;
   static long time = millis();
   if (millis() % rate == 0 && time != millis()) {

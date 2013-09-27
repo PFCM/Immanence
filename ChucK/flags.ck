@@ -1,4 +1,6 @@
 public class Flags {
-    static int startRecording;
-    static int stopRecording;
+    static int recording;
+    static int simulationRunning;
+    static float panA;
+    static float panB;
 }

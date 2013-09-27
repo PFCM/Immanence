@@ -2,9 +2,11 @@
 const int ultrasound = A0;
 const int infrared = A1;
 const int pressure = A2;
-const int encMotor = 11;
+
+
+const int encMotor = 9;
 const int lMotor = 10;
-const int rMotor = 9;
+const int rMotor = 11;
 
 volatile byte newB;
 volatile byte oldA;
@@ -16,8 +18,7 @@ const int EM_SEARCH = 0;
 const int EM_STOP = 1;
 const int EM_RAMP = 2;
 
-long EM_STOP_POINT = 436587;
-long revs = 0;
+long EM_STOP_POINT = 4330;
 
 // states for arm motors
 // not the motors are different, so applying the same
@@ -42,17 +43,13 @@ const int RECORDING = 2;
 const int SPEEDUP = 3;
 
 //start at the fourth state?
-int currentstate = SPEEDUP;
+int currentstate = CHILLING;
 
 //READINGS ARE US/IR/Pressure
-int readingsize = 3; //Change this once the pressure has been attached
+int readingsize = 4; //Change this once the pressure has been attached
 int readings[] = {
   0,0,0,0};
 int lastReadings[3];
-
-
-int count = 0;
-
 
 void setup(){
   pinMode(encMotor, OUTPUT);
@@ -64,14 +61,16 @@ void setup(){
   pinMode(pressure, INPUT);
 
   // attach interrupts
-  attachInterrupt(0, doEncoderA, CHANGE);
-  attachInterrupt(1, doEncoderB, CHANGE);
+  attachInterrupt(1, doEncoderA, CHANGE);
+  attachInterrupt(0, doEncoderB, CHANGE);
 
   Serial.begin(9600);
 
 }
 
 void loop(){
+  static int count = 0;
+  static int keepChilling = 0;
   static long time = millis();
   if ((millis() % 10) && ( time != millis()))
   {
@@ -94,14 +93,19 @@ void loop(){
       //IF WE ARE IN THE FIRST STATE
     case CHILLING: 
       //                 USTHRESHOLD            IRTHRESHOLD
+      if (Serial.available() > 0){
+        int temp =  Serial.read();
+        Serial.flush();
+        keepChilling = 0;
+      }
       count++;
-      if (readings[1] > 80){
+      if (readings[1] > 100 && keepChilling == 0){
 
-        if (readings[2] < 50){
-          currentstate = 1; 
+        if (readings[2] < 40){
+          currentstate = WAITING; 
           emState = EM_STOP;
-          rState = M_TWITCH;
-          lState = M_TWITCH;
+          rState = M_RAMP_DOWN;
+          lState = M_RAMP_DOWN;
         }
       }
       break;
@@ -113,7 +117,9 @@ void loop(){
       if (Serial.available() > 0){
         int temp =  Serial.read();
         Serial.flush();
-        currentstate = 2;
+        currentstate = RECORDING;
+        rState = M_TWITCH;
+        lState = M_TWITCH;
       }
       break;
 
@@ -124,7 +130,7 @@ void loop(){
       if (Serial.available() > 0){
         int temp =  Serial.read();
         Serial.flush();
-        currentstate = 3;
+        currentstate = SPEEDUP;
           emState = EM_RAMP;
           rState = M_RAMP_UP;
           lState = M_RAMP_UP;
@@ -136,18 +142,19 @@ void loop(){
       count++;
 
       if (count > 100){
-        currentstate = 0; 
+        currentstate = CHILLING; 
         count = 0;
           emState = EM_SEARCH;
           rState = M_WANDER;
           lState = M_WANDER;
+          keepChilling = 1;
       }
       break;
     }
   }
 
   runEncMotor();
-  runArmMotors();
+  runArmMotors(readings[1]);
 }
 
 void serialPrint(int x[]){
@@ -155,7 +162,7 @@ void serialPrint(int x[]){
   Serial.print("[");
 
   //Print all the characters within the array (except the last one), followed by a comma
-  for (int i = 0; i < readingsize; i++)
+  for (int i = 0; i < readingsize-1; i++)
   {
     Serial.print(x[i]);
     Serial.print(",");
